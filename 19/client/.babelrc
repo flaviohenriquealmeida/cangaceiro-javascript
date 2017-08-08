@@ -1,0 +1,4 @@
+{
+    "presets":["es2017"],
+    "plugins" : ["transform-es2015-modules-systemjs", "transform-decorators-legacy"]
+}

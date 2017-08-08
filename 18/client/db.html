@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Aprendendo IndexedDB</title>
+</head>
+
+<body>
+    <script src="app/domain/negociacao/Negociacao.js"></script>
+    <script>
+        let connection = null;
+
+        const openRequest = indexedDB.open('jscangaceiro', 2);
+
+        openRequest.onupgradeneeded = e => {
+
+            console.log('Cria ou altera um banco já existente');
+            connection = e.target.result;
+
+            // pode ser que o evento esteja sendo disparado durante uma atualização,
+            // nesse caso, verificamos se a store existe, se existir 
+            // apagamos a store atual antes de criar uma nova
+
+            if (connection.objectStoreNames.contains('negociacoes')) {
+                connection.deleteObjectStore('negociacoes');
+            }
+            connection.createObjectStore('negociacoes', { autoIncrement: true });
+        };
+
+        openRequest.onsuccess = e => {
+
+            console.log('Conexão realizada com sucesso');
+            connection = e.target.result;
+        };
+
+        openRequest.onerror = e => {
+
+            console.log(e.target.error);
+        };
+
+        function adiciona() {
+
+            const negociacao = new Negociacao(new Date(), 200, 1);
+
+            const request = connection
+                .transaction(['negociacoes'], 'readwrite')
+                .objectStore('negociacoes')
+                .add(negociacao);
+
+            request.onsuccess = e =>
+                console.log('negociação salva com sucesso');
+
+            request.onerror = e =>
+                console.log('Não foi possível savar a negociação');
+        }
+
+        function listaTodos() {
+
+            const negociacoes = [];
+
+            const cursor = connection
+                .transaction(['negociacoes'], 'readwrite')
+                .objectStore('negociacoes')
+                .openCursor();
+
+            cursor.onsuccess = e => {
+
+                const atual = e.target.result;
+
+                if (atual) {
+
+                    const negociacao = new Negociacao(
+                        atual.value._data,
+                        atual.value._quantidade,
+                        atual.value._valor);
+
+                    negociacoes.push(negociacao);
+                    atual.continue();
+
+                } else {
+
+                    console.log(negociacoes);
+                }
+            };
+
+            cursor.onerror = e => console.log(e.target.error.name);
+        }
+    </script>
+</body>
+
+</html>
